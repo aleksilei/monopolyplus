@@ -9,6 +9,9 @@ PIP := $(VENV_PYTHON) -m pip
 DOCKER := docker
 COMPOSE := $(DOCKER) compose -f docker-compose.yml
 
+# Bind-mounted into the container; holds the SQLite game file.
+DB_DIR := db
+
 # LAN IP of this machine, so the /books QR code points somewhere phones can reach.
 # macOS: Wi-Fi is usually en0, Ethernet en1. Linux: first address from hostname -I.
 HOST_IP ?= $(shell ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || hostname -I 2>/dev/null | awk '{print $$1}')
@@ -51,7 +54,11 @@ clean:
 build:
 	$(COMPOSE) build
 
-run: check-docker
+# Created here so it belongs to you, not to root (Docker would create it on Linux).
+$(DB_DIR):
+	mkdir -p $@
+
+run: check-docker $(DB_DIR)
 	$(COMPOSE) up --build --detach
 	@$(MAKE) ps
 	@echo "Banker: http://localhost:8080   Books: http://$(HOST_IP):8080/books"

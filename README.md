@@ -28,9 +28,10 @@ their phones (same Wi-Fi). The Makefile passes this machine's LAN IP into the co
 | `make test`              | Run the tests in the venv                                  |
 | `make dev`               | Flask dev server with reload on port 8080, no Docker       |
 
-The game lives in SQLite on the `monopoly-plus_banker-data` Docker volume, so it survives restarts.
-Starting a new game keeps older games in the file. **Setup → Export game** downloads the full event log as
-JSON, which **Import game** restores. `docker compose -f docker-compose.yml down -v` wipes everything.
+The game lives in `db/monopoly.db`, a gitignored folder bind-mounted into the container, so it survives
+restarts and rebuilds. Starting a new game keeps older games in the file. To back up, copy the file while
+the banker is stopped, or use **Setup → Export game**, which downloads the full event log as JSON for
+**Import game** to restore. To wipe everything, `make stop` and delete `db/`.
 
 ## How it works
 

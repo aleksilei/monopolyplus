@@ -26,7 +26,7 @@ Decisions taken:
 
 ## Agreed design constraints
 - **Stack:** Python + SQLite + vanilla HTML/CSS/JS, with no React (no justification for it). FastAPI or Flask with Jinja templates and raw `sqlite3`, no ORM. htmx was proposed as an optional single `<script>` tag with no build step; not yet decided.
-- **Runtime:** single-service `docker compose` (`docker-compose.yml`), SQLite file on a volume, `make run` → `docker compose up --build --detach`, published on `0.0.0.0:8080`. The Makefile follows the user's usual conventions: `help` as the default goal, `venv`/`install`/`test`, and `run`/`stop`/`restart`/`ps`/`logs`. It has no linters.
+- **Runtime:** single-service `docker compose` (`docker-compose.yml`), SQLite file in a gitignored `./db` folder bind-mounted into the container, `make run` → `docker compose up --build --detach`, published on `0.0.0.0:8080`. The Makefile follows the user's usual conventions: `help` as the default goal, `venv`/`install`/`test`, and `run`/`stop`/`restart`/`ps`/`logs`. It has no linters.
 - **Scope:** one active game, LAN only, **no auth**. Players are trusted, and the banker is always the user or a family member who knows some dev stuff.
 - **Data model:** an append-only event log (`found`, `share_transfer`, `share_auction`, `envelope_count`, `set_owner`, `set_houses`, `set_mortgage`, `dividend`, `merge`, `close`, `bankruptcy`, …). Current state is derived by folding events. Undo = void events.
 - **Rules engine:** pure Python functions with pytest tests: founding validity, 100-share split by value, vote pass (> 50% of all shares), dividend split, auction start bid, merger split, go-private detection, net worth.
