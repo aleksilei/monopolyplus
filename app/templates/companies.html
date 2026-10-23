@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}Companies{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>Companies</h1>
+  <a class="button ghost small" href="{{ url_for('banker.found') }}">Found a company</a>
+</div>
+
+{% if state.active_companies %}
+<div class="cards">
+  {% for c in state.active_companies %}
+  <article class="card">
+    <h2>{{ m.company_chips(c) }} <a href="{{ url_for('banker.company', cid=c.id) }}">{{ c.name }}</a></h2>
+    <small>CEO {{ state.name(c.ceo) }}{% if c.ceo_tie %} (tie: roll dice){% endif %}</small>
+    <dl class="stats">
+      <div><dt>Envelope</dt><dd>{{ c.cash|money }}<small>{{ m.counted(c) }}</small></dd></div>
+      <div><dt>Value</dt><dd>{{ state.company_value(c)|money }}</dd></div>
+      <div><dt>Price/share</dt><dd>{{ state.share_price(c)|price }}</dd></div>
+      <div><dt>Shares</dt><dd>{{ c.outstanding }}</dd></div>
+    </dl>
+    <p>{% for pid, n in c.holdings.items() %}{{ state.name(pid) }} <b>{{ n }}</b>{% if not loop.last %} · {% endif %}{% endfor %}</p>
+    <form method="post" action="{{ url_for('banker.count_envelope', cid=c.id) }}" class="row">
+      <input class="money" name="cash" inputmode="numeric" placeholder="{{ c.cash }}" aria-label="Counted cash">
+      <button class="small">Count envelope</button>
+      <a class="button ghost small" href="{{ url_for('banker.company', cid=c.id) }}">Board meeting →</a>
+    </form>
+  </article>
+  {% endfor %}
+</div>
+
+<h2 style="margin-top:1.5rem">Who holds what</h2>
+<div class="card">{{ m.holdings_table() }}</div>
+{% else %}
+<p class="muted">No companies yet. When two or more players together own a whole colour set, they can
+  <a href="{{ url_for('banker.found') }}">found one</a>.</p>
+{% endif %}
+
+{% set gone = state.companies.values()|rejectattr('active')|list %}
+{% if gone %}
+<h2 style="margin-top:1.5rem">Former companies</h2>
+<div class="card scroll">
+  <table>
+    <tr><th>Company</th><th>What happened</th></tr>
+    {% for c in gone %}
+    <tr>
+      <td>{{ m.company_chips(c) }} {{ c.name }}</td>
+      <td>{% if c.status == 'merged' %}Merged into {{ state.name(c.successor) }}
+          {% elif c.status == 'private' %}Went private to {{ state.name(c.successor) }}
+          {% else %}Dissolved{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

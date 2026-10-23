@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Banker{% endblock %} · Monopoly+</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="{{ url_for('banker.board') }}">Monopoly<span>+</span> banker</a>
+  {% if state %}
+  <form method="post" action="{{ url_for('banker.next_round') }}">
+    <span>Round <b>{{ state.round }}</b></span>
+    <button class="small" title="Start the next round">+1</button>
+  </form>
+  <span class="clock" data-since="{{ state.started_at }}" data-cap="{{ state.settings.time_cap_minutes }}"></span>
+  <form method="post" action="{{ url_for('banker.undo') }}" data-confirm="Undo the last recorded event?">
+    <button class="ghost small">Undo</button>
+  </form>
+  <a class="button ghost small" href="{{ url_for('banker.qr') }}">Books QR</a>
+  {% endif %}
+</header>
+{% if state %}
+{% set tabs = [
+  ('board', 'Board', ['board']),
+  ('companies', 'Companies', ['companies', 'company']),
+  ('found', 'Found', ['found', 'found_post']),
+  ('trade', 'Trade shares', ['trade']),
+  ('merge', 'Merge', ['merge', 'merge_post']),
+  ('bankruptcy', 'Bankruptcy', ['bankruptcy']),
+  ('endgame', 'Time limit', ['endgame']),
+  ('history', 'History', ['history']),
+  ('setup', 'Setup', ['setup']),
+] %}
+{% set here = (request.endpoint or '').split('.')[-1] %}
+<nav class="tabs">
+  {% for endpoint, label, active in tabs %}
+  <a href="{{ url_for('banker.' ~ endpoint) }}" {% if here in active %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+<main>
+  {% for msg in alerts %}<p class="msg warn">{{ msg }}</p>{% endfor %}
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}<p class="msg {{ cat }}">{{ msg }}</p>{% endfor %}
+  {% if error %}<p class="msg error">{{ error }}</p>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

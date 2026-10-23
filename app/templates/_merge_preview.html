@@ -1,0 +1,42 @@
+{% if preview_error %}
+<p class="msg error">{{ preview_error }}</p>
+{% elif preview %}
+{% set a, b = preview.a, preview.b %}
+<div class="preview">
+  <p>{{ a.name }}: {{ scratch.company_value(a)|money }} ÷ {{ a.outstanding }} = <b>{{ preview.price_a|price }}</b> ·
+     {{ b.name }}: {{ scratch.company_value(b)|money }} ÷ {{ b.outstanding }} = <b>{{ preview.price_b|price }}</b></p>
+  <div class="scroll">
+  <table>
+    <tr><th>Player</th><th class="num">Old A</th><th class="num">Old B</th><th class="num">Worth</th><th class="num">New shares</th><th class="num">%</th></tr>
+    {% for pid, value in preview["values"].items() %}
+    <tr>
+      <td>{{ state.name(pid) }}</td>
+      <td class="num">{{ a.holdings.get(pid, 0) }}</td>
+      <td class="num">{{ b.holdings.get(pid, 0) }}</td>
+      <td class="num">{{ value|money }}</td>
+      <td class="num"><b>{{ preview.shares[pid] }}</b></td>
+      <td class="num">{{ (preview.shares[pid] / state.settings.founding_shares)|pct }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <p>New company: value <b>{{ preview.value|money }}</b> · {{ state.settings.founding_shares }} shares at
+    <b>{{ preview.price|price }}</b> · envelope <b>{{ (a.cash + b.cash)|money }}</b></p>
+  {% if preview.tied|length > 1 %}
+  <label class="field"><span>Tie for biggest shareholder: roll the dice. CEO:</span>
+    <select name="ceo" required>
+      <option value="">Dice winner…</option>
+      {% for pid in preview.tied %}<option value="{{ pid }}" {% if form.get('ceo') == pid %}selected{% endif %}>{{ state.name(pid) }}</option>{% endfor %}
+    </select>
+  </label>
+  {% else %}
+  <p>CEO: <b>{{ state.name(preview.ceo) }}</b> (biggest shareholder)</p>
+  {% endif %}
+  {% for side, c in [('a', a), ('b', b)] %}
+  {% set yes = scratch.yes_shares(c, form.getlist('yes_' ~ side)) %}
+  <div class="tally {{ 'pass' if scratch.vote_passes(c, form.getlist('yes_' ~ side)) else 'fail' }}">
+    {{ c.name }} board: {{ yes }} of {{ c.outstanding }} shares vote yes
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

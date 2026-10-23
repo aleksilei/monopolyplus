@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}Bankruptcy{% endblock %}
+{% block content %}
+<h1>Bankruptcy</h1>
+<p class="hint">If the creditor is a player, they get everything, shares included. If it's the bank or a company,
+  everything is auctioned straight away and the money goes to the bank or into the company's envelope.
+  A company never takes deeds directly.</p>
+
+<form method="get" class="card row">
+  <label class="field"><span>Who is bankrupt?</span>
+    <select name="player" onchange="this.form.submit()">{{ m.player_options(form.get('player'), 'Pick…') }}</select></label>
+  <label class="field"><span>Owing whom?</span>
+    <select name="creditor" onchange="this.form.submit()">
+      <option value="">Pick…</option>
+      <option value="bank" {% if form.get('creditor') == 'bank' %}selected{% endif %}>The bank</option>
+      <optgroup label="Players">
+        {% for p in state.active_players if not debtor or p.id != debtor.id %}
+        <option value="player:{{ p.id }}" {% if form.get('creditor') == 'player:' ~ p.id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </optgroup>
+      {% if state.active_companies %}
+      <optgroup label="Companies">
+        {% for c in state.active_companies %}
+        <option value="company:{{ c.id }}" {% if form.get('creditor') == 'company:' ~ c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endif %}
+    </select></label>
+  <noscript><button>Load</button></noscript>
+</form>
+
+{% if debtor and creditor and not debtor.bankrupt %}
+{% set creditor_name = state.name(creditor.id) if creditor.id else 'the bank' %}
+{% set deeds = state.deeds_of(debtor.id) %}
+{% set holdings = state.holdings_of(debtor.id) %}
+<form method="post" class="card" data-confirm="{{ debtor.name }} goes bankrupt. This can be undone from the history. Continue?">
+  <input type="hidden" name="player" value="{{ debtor.id }}">
+  <input type="hidden" name="creditor" value="{{ form.get('creditor') }}">
+
+  {% if creditor.kind == 'player' %}
+  <h2>{{ creditor_name }} takes everything</h2>
+  <p>{{ debtor.name }} hands over all their cash{% if deeds or holdings %}, plus:{% else %}. They own nothing else.{% endif %}</p>
+  <ul>
+    {% for d in deeds %}<li>{{ m.chip(d.group) }} {{ d.name }}{% if d.houses %} with {{ d.houses|buildings }}{% endif %}{% if d.mortgaged %} (mortgaged){% endif %}</li>{% endfor %}
+    {% for cid, n in holdings.items() %}<li>{{ n }} {{ state.name(cid) }} shares</li>{% endfor %}
+  </ul>
+  {% else %}
+  <h2>Auction everything for {{ creditor_name }}</h2>
+  <p class="hint">Buildings go back to the bank at half price. Mortgaged deeds sell as mortgaged. Deeds nobody
+    bids on go back to the bank; shares nobody bids on are cancelled.</p>
+  <div class="scroll">
+  <table>
+    <tr><th>Lot</th><th>Winner</th><th>Price</th></tr>
+    {% for d in deeds %}
+    <tr>
+      <td>{{ m.chip(d.group) }} {{ d.name }}
+        {% if d.mortgaged %}<small>(mortgaged)</small>{% endif %}
+        {% if d.houses %}<br><small>{{ d.houses|buildings }} sold back for {{ (d.houses * rules.house_sale_refund(d.house_cost))|money }}</small>{% endif %}</td>
+      <td><select name="deed-{{ d.id }}-buyer" aria-label="Winner of {{ d.name }}">{{ m.player_options(form.get('deed-' ~ d.id ~ '-buyer'), 'No bids', exclude=(debtor.id,)) }}</select></td>
+      <td><input class="money" name="deed-{{ d.id }}-price" inputmode="numeric" placeholder="£" value="{{ form.get('deed-' ~ d.id ~ '-price', '') }}" aria-label="Price for {{ d.name }}"></td>
+    </tr>
+    {% endfor %}
+    {% for cid, n in holdings.items() %}
+    {% set c = state.companies[cid] %}
+    <tr>
+      <td>{{ n }} {{ c.name }} shares <small>(worth {{ (n * state.share_price(c))|money }})</small></td>
+      <td><select name="shares-{{ cid }}-buyer" aria-label="Winner of {{ c.name }} shares">{{ m.player_options(form.get('shares-' ~ cid ~ '-buyer'), 'No bids', exclude=(debtor.id,)) }}</select></td>
+      <td><input class="money" name="shares-{{ cid }}-price" inputmode="numeric" placeholder="£" value="{{ form.get('shares-' ~ cid ~ '-price', '') }}" aria-label="Price for {{ c.name }} shares"></td>
+    </tr>
+    {% endfor %}
+    {% if not deeds and not holdings %}<tr><td colspan="3" class="muted">Nothing to auction.</td></tr>{% endif %}
+  </table>
+  </div>
+  {% if creditor.kind == 'company' %}
+  <label class="field" style="margin-top:1rem"><span>Cash {{ debtor.name }} hands over (goes into the envelope)</span>
+    <input class="money" name="cash" inputmode="numeric" placeholder="£0" value="{{ form.get('cash', '') }}"></label>
+  {% endif %}
+  {% endif %}
+  <div class="row end"><button class="danger">Declare {{ debtor.name }} bankrupt</button></div>
+</form>
+{% endif %}
+{% endblock %}

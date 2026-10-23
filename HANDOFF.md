@@ -15,11 +15,18 @@ Done means: a GitHub repo with a `Dockerfile` and a compose project, where `make
 - Agreed that the app is reasonable and better than the workbook. The workbook mixes current state with history, and an append-only event log fixes that.
 
 ## Current state
-No code exists yet. The rules are settled and the stack is agreed in outline. Three implementation choices are still open (see Open questions).
+_Updated 2026-10-23, Claude Code session._ The app is implemented and runs with `make run`; see [README.md](README.md). All screens in Next steps 2–7 exist: setup, board grid with inline htmx edits, companies and books, founding wizard, board meetings (votes, dividends, share auctions, buildings, mortgages), share trades, mergers, bankruptcy auctions, time-limit net worth, history with void/restore, `/books` with a QR code, and JSON/CSV export plus JSON import. `make install && make test` runs 33 tests in a local venv, covering both workbook examples. It has not yet been used in a real game.
+
+Decisions taken:
+- Flask, not FastAPI: form-heavy server-rendered pages suit it better.
+- htmx 2.0.4, vendored in `app/static/` (works offline).
+- Undo can void any past event. The app replays the log and refuses a void that would break a later event.
+- The Excel workbook is retired. Export is JSON (the full event log, which can be imported again) and CSV (end state).
+- Bankruptcy-auction shares nobody bids on are cancelled. This is a narrow exception to rule 11.
 
 ## Agreed design constraints
 - **Stack:** Python + SQLite + vanilla HTML/CSS/JS, with no React (no justification for it). FastAPI or Flask with Jinja templates and raw `sqlite3`, no ORM. htmx was proposed as an optional single `<script>` tag with no build step; not yet decided.
-- **Runtime:** single-service `docker compose`, SQLite file on a volume, `make run` → `docker compose up --build`, published on `0.0.0.0:8080`.
+- **Runtime:** single-service `docker compose` (`docker-compose.yml`), SQLite file on a volume, `make run` → `docker compose up --build --detach`, published on `0.0.0.0:8080`. The Makefile follows the user's usual conventions: `help` as the default goal, `venv`/`install`/`test`, and `run`/`stop`/`restart`/`ps`/`logs`. It has no linters.
 - **Scope:** one active game, LAN only, **no auth**. Players are trusted, and the banker is always the user or a family member who knows some dev stuff.
 - **Data model:** an append-only event log (`found`, `share_transfer`, `share_auction`, `envelope_count`, `set_owner`, `set_houses`, `set_mortgage`, `dividend`, `merge`, `close`, `bankruptcy`, …). Current state is derived by folding events. Undo = void events.
 - **Rules engine:** pure Python functions with pytest tests: founding validity, 100-share split by value, vote pass (> 50% of all shares), dividend split, auction start bid, merger split, go-private detection, net worth.
@@ -70,11 +77,9 @@ Normal Monopoly rules (UK edition) apply, plus the rules below. The banker does 
 6. Undo, plus an event history view.
 7. Optional: export the final state to CSV/XLSX.
 
-## Open questions (user to answer)
-- htmx or pure vanilla JS?
-- Undo scope: only the last event, or void any past event (state recomputes either way)?
-- Keep the Excel workbook as an export format, or retire it?
-- Later feature, explicitly parked: government bonds (a new event type plus a coupon paid at the CEO's GO meeting).
+## Open questions
+- All earlier questions are answered (see Current state).
+- Later feature, explicitly parked: government bonds (a new event type plus a coupon paid at the CEO's GO meeting). The plan is a handler in `app/state.py` plus a motion on the company page.
 
 ## Pointers
 - Reference workbook: `Monopoly_Corporations_Banker.xlsx`, next to this file.

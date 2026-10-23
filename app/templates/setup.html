@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Setup{% endblock %}
+
+{% macro settings_fields(s) %}
+<div class="row">
+  <label class="field"><span>Starting cash (£)</span>
+    <input type="number" name="starting_cash" min="1" value="{{ s.starting_cash }}"></label>
+  <label class="field"><span>Shares at founding / merger</span>
+    <input type="number" name="founding_shares" min="1" value="{{ s.founding_shares }}"></label>
+  <label class="field"><span>Extra meeting threshold (%)</span>
+    <input type="number" name="extra_meeting_threshold" min="1" max="100" value="{{ (s.extra_meeting_threshold * 100)|int }}"></label>
+  <label class="field"><span>Vote passes above (%)</span>
+    <input type="number" name="vote_threshold" min="1" max="99" value="{{ (s.vote_threshold * 100)|int }}"></label>
+  <label class="field"><span>Auction opening bid (% of value)</span>
+    <input type="number" name="auction_start_fraction" min="1" max="200" value="{{ (s.auction_start_fraction * 100)|int }}"></label>
+  <label class="field"><span>Time limit (minutes)</span>
+    <input type="number" name="time_cap_minutes" min="1" value="{{ s.time_cap_minutes }}"></label>
+</div>
+{% endmacro %}
+
+{% macro import_form() %}
+<form method="post" action="{{ url_for('banker.import_json') }}" enctype="multipart/form-data" class="row"
+      data-confirm="Importing starts a new game from the file. Continue?">
+  <input type="file" name="file" accept="application/json,.json" required>
+  <button class="small ghost">Import game</button>
+</form>
+{% endmacro %}
+
+{% block content %}
+{% if not state %}
+<h1>New game</h1>
+<form method="post" action="{{ url_for('banker.new_game') }}" class="card">
+  <label class="field"><span>Players, one per line, in order of play</span>
+    <textarea name="players" rows="6" required placeholder="Aleksi&#10;Maija&#10;Ville"></textarea></label>
+  <h2>House rules</h2>
+  {{ settings_fields(defaults) }}
+  <div class="row end"><button>Start game</button></div>
+</form>
+<section class="card">
+  <h2>Restore a saved game</h2>
+  {{ import_form() }}
+</section>
+{% else %}
+<h1>Setup</h1>
+
+<section class="card">
+  <h2>House rules</h2>
+  <form method="post" action="{{ url_for('banker.settings') }}">
+    {{ settings_fields(state.settings) }}
+    <div class="row end"><button class="small">Save rules</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Players</h2>
+  {% for p in state.players.values() %}
+  <form method="post" action="{{ url_for('banker.rename_player', pid=p.id) }}" class="row" style="margin-bottom:.4rem">
+    <input name="name" value="{{ p.name }}" aria-label="Name">
+    <button class="small ghost">Rename</button>
+    {% if p.bankrupt %}<span class="pill">bankrupt</span>{% endif %}
+  </form>
+  {% endfor %}
+  <form method="post" action="{{ url_for('banker.add_player') }}" class="row" style="margin-top:.75rem">
+    <input name="name" placeholder="New player" required aria-label="New player">
+    <button class="small">Add player</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Save &amp; restore</h2>
+  <p class="row">
+    <a class="button ghost small" href="{{ url_for('banker.export_json') }}">Export game (JSON)</a>
+    <a class="button ghost small" href="{{ url_for('banker.export_csv') }}">Export state (CSV)</a>
+  </p>
+  <p class="hint">The JSON file holds every event and can be imported again as a new game.</p>
+  {{ import_form() }}
+</section>
+
+<section class="card">
+  <h2>Start a new game</h2>
+  <form method="post" action="{{ url_for('banker.new_game') }}">
+    <label class="field"><span>Players, one per line, in order of play</span>
+      <textarea name="players" rows="5" required>{% for p in state.players.values() %}{{ p.name }}
+{% endfor %}</textarea></label>
+    {{ settings_fields(state.settings) }}
+    <label><input type="checkbox" name="confirm" value="1"> End the current game (it stays in the database file)</label>
+    <div class="row end"><button class="danger">Start new game</button></div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

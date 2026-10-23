@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>History</h1>
+  <a class="button ghost small" href="{{ url_for('banker.export_json') }}">Export game (JSON)</a>
+</div>
+<p class="hint">Every change is an event, newest first. Void one to undo it: the game is replayed without it, and
+  the void is refused if a later event would stop making sense. Voided events can be restored.</p>
+<div class="card scroll">
+  <table>
+    <tr><th>#</th><th>Round</th><th>Time</th><th>What happened</th><th></th></tr>
+    {% for ev in events %}
+    {% set entry = entries.get(ev.id) %}
+    <tr class="{{ 'voided' if ev.voided else '' }}">
+      <td class="num">{{ ev.id }}</td>
+      <td class="num">{{ entry.round if entry else '' }}</td>
+      <td><time datetime="{{ ev.created_at }}">{{ ev.created_at[11:16] }}</time></td>
+      <td class="effects">
+        {% if entry %}{{ entry.text }}{% for e in entry.effects %}<br><b>→ {{ e }}</b>{% endfor %}
+        {% else %}{{ ev.type.replace('_', ' ') }} <small>{{ ev.payload|tojson }}</small>{% endif %}
+      </td>
+      <td>
+        {% if ev.type != 'game_start' %}
+        {% set action = 'restore' if ev.voided else 'void' %}
+        <form method="post" action="{{ url_for('banker.event_action', event_id=ev.id, action=action) }}"
+              {% if action == 'void' %}data-confirm="Void #{{ ev.id }}?"{% endif %}>
+          <button class="small ghost">{{ action|capitalize }}</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

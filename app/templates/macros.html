@@ -1,0 +1,52 @@
+{% macro chip(gid) -%}
+<span class="chip" style="--c: {{ state.board.groups[gid].colour }}" title="{{ state.board.groups[gid].name }}"></span>
+{%- endmacro %}
+
+{% macro company_chips(c) -%}
+{% for gid in c.groups %}{{ chip(gid) }}{% endfor %}
+{%- endmacro %}
+
+{% macro counted(c) -%}
+{% if c.counted_round %}counted round {{ c.counted_round }} · {{ c.counted_at|ago }}{% else %}never counted{% endif %}
+{%- endmacro %}
+
+{% macro player_options(selected=None, blank=None, exclude=()) -%}
+{% if blank %}<option value="">{{ blank }}</option>{% endif %}
+{% for p in state.active_players if p.id not in exclude %}
+<option value="{{ p.id }}" {% if p.id == selected %}selected{% endif %}>{{ p.name }}</option>
+{% endfor %}
+{%- endmacro %}
+
+{% macro company_options(selected=None, blank=None) -%}
+{% if blank %}<option value="">{{ blank }}</option>{% endif %}
+{% for c in state.active_companies %}
+<option value="{{ c.id }}" {% if c.id == selected %}selected{% endif %}>{{ c.name }}</option>
+{% endfor %}
+{%- endmacro %}
+
+{% macro holdings_table() -%}
+{% if state.active_companies %}
+<div class="scroll">
+<table>
+  <tr>
+    <th>Player</th>
+    {% for c in state.active_companies %}<th class="num">{{ company_chips(c) }} {{ c.name }}</th>{% endfor %}
+  </tr>
+  {% for p in state.players.values() if not p.bankrupt %}
+  <tr>
+    <td>{{ p.name }}</td>
+    {% for c in state.active_companies %}
+    <td class="num">{% if c.holdings.get(p.id) %}{{ c.holdings[p.id] }} <small>{{ (c.holdings[p.id] / c.outstanding)|pct }}</small>{% else %}<small>—</small>{% endif %}</td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+  <tr>
+    <td><b>Price/share</b></td>
+    {% for c in state.active_companies %}<td class="num"><b>{{ state.share_price(c)|price }}</b></td>{% endfor %}
+  </tr>
+</table>
+</div>
+{% else %}
+<p class="muted">No companies yet.</p>
+{% endif %}
+{%- endmacro %}

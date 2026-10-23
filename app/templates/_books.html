@@ -1,0 +1,52 @@
+{% import "macros.html" as m with context %}
+{% if not state %}
+<p class="muted">No game yet.</p>
+{% else %}
+<div class="books-head">
+  <h1>Companies</h1>
+  <span class="muted">Round {{ state.round }} ·
+    <span class="clock" data-since="{{ state.started_at }}" data-cap="{{ state.settings.time_cap_minutes }}"></span></span>
+</div>
+
+{% if state.final_cash is not none %}
+<section class="card">
+  <h2>Final net worth</h2>
+  <table>
+    {% for r in state.net_worth(state.final_cash) %}
+    <tr><td>{{ loop.index }}</td><td>{{ r.player.name }}{% if loop.first %} 🏆{% endif %}</td><td class="num"><b>{{ r.total|money }}</b></td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endif %}
+
+{% for c in state.active_companies %}
+<section class="card">
+  <h2>{{ m.company_chips(c) }} {{ c.name }}</h2>
+  <small>CEO {{ state.name(c.ceo) }}</small>
+  <dl class="stats">
+    <div><dt>Envelope</dt><dd>{{ c.cash|money }}<small>{{ m.counted(c) }}</small></dd></div>
+    <div><dt>Value</dt><dd>{{ state.company_value(c)|money }}</dd></div>
+    <div><dt>Price/share</dt><dd>{{ state.share_price(c)|price }}</dd></div>
+    <div><dt>Shares</dt><dd>{{ c.outstanding }}</dd></div>
+  </dl>
+  <table>
+    <tr><th>Shareholder</th><th class="num">Shares</th><th class="num">%</th><th class="num">Worth</th></tr>
+    {% for pid, n in c.holdings.items() %}
+    <tr>
+      <td>{{ state.name(pid) }}</td>
+      <td class="num">{{ n }}</td>
+      <td class="num">{{ (n / c.outstanding)|pct }}</td>
+      <td class="num">{{ (n * state.share_price(c))|money }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="hint">
+    {% for d in state.deeds_of(c.id) %}{{ d.name }}{% if d.houses %} ({{ d.houses|buildings }}){% endif %}{% if d.mortgaged %} (mortgaged){% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+  </p>
+</section>
+{% else %}
+<p class="muted">No companies yet.</p>
+{% endfor %}
+<p class="hint">Envelope cash is the last count plus everything the banker has recorded since; rent paid in
+  after the count isn't included until the next count. Ask the banker for a fresh count any time.</p>
+{% endif %}

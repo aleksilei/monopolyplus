@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Books QR{% endblock %}
+{% block content %}
+<div class="qr card">
+  <h1>Scan for the books</h1>
+  {{ svg|safe }}
+  <p><a href="{{ url }}">{{ url }}</a></p>
+  {% if warn_localhost %}
+  <p class="msg warn">This address only works on this computer. Start the app with <code>make run</code> so it can
+    pass in the computer's LAN address, or open the banker page via the LAN address instead of localhost.</p>
+  {% endif %}
+  <p class="hint">Phones must be on the same Wi-Fi. The page is read-only and refreshes itself.</p>
+</div>
+{% endblock %}

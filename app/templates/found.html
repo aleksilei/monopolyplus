@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}Found a company{% endblock %}
+{% block content %}
+<h1>Found a company</h1>
+<p class="hint">Two or more players who together own a whole colour set can turn it into a company. Everyone
+  who owns a deed of that colour must join, and every deed goes in. Founders may add any cash they like.</p>
+
+{% if not gid %}
+<div class="card scroll">
+  <table>
+    {% for o in options.values() %}
+    <tr>
+      <td>{{ m.chip(o.group) }} {{ state.board.groups[o.group].name }}</td>
+      <td class="muted">{{ o.reason }}</td>
+      <td class="num">{% if o.eligible %}<a class="button small" href="{{ url_for('banker.found', group=o.group) }}">Found</a>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% else %}
+{% set option = options[gid] %}
+{% set group = state.board.groups[gid] %}
+<form method="post" action="{{ url_for('banker.found_post') }}" class="card"
+      hx-post="{{ url_for('banker.found_preview') }}" hx-trigger="input delay:250ms, change" hx-target="#found-preview">
+  <input type="hidden" name="group" value="{{ gid }}">
+  <h2>{{ m.chip(gid) }} {{ group.name }}</h2>
+  <label class="field"><span>Company name</span>
+    <input name="name" value="{{ form.get('name', group.company) }}" required>
+  </label>
+  <div class="scroll">
+  <table>
+    <tr><th>CEO</th><th>Founder</th><th>Deeds</th><th>Cash in</th></tr>
+    {% for pid, deeds in option.founders.items() %}
+    <tr>
+      <td><input type="radio" name="ceo" value="{{ pid }}" aria-label="{{ state.name(pid) }} is CEO" {% if form.get('ceo') == pid %}checked{% endif %} required></td>
+      <td>{{ state.name(pid) }}</td>
+      <td>{% for d in deeds %}{{ d.name }} <small>{{ d.value|money }}{% if d.mortgaged %} (mortgaged){% endif %}</small>{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+      <td><input class="money" name="cash-{{ pid }}" inputmode="numeric" placeholder="£0" value="{{ form.get('cash-' ~ pid, '') }}" aria-label="{{ state.name(pid) }}'s cash"></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <p class="hint">The CEO is the player who suggested the company. Their only job is that board meetings happen when they pass GO.</p>
+  <div id="found-preview">{% include "_found_preview.html" %}</div>
+  <div class="row end"><a class="button ghost" href="{{ url_for('banker.found') }}">Cancel</a><button>Found {{ group.name }} company</button></div>
+</form>
+{% endif %}
+{% endblock %}

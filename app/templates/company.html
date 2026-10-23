@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% import "_meeting_preview.html" as mp with context %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>{{ m.company_chips(c) }} {{ c.name }}</h1>
+  <span class="muted">CEO <b>{{ state.name(c.ceo) }}</b> · founded round {{ c.founded_round }}</span>
+</div>
+
+{% if not c.active %}
+<p class="msg warn">
+  {% if c.status == 'merged' %}Merged into <a href="{{ url_for('banker.company', cid=c.successor) }}">{{ state.name(c.successor) }}</a>.
+  {% elif c.status == 'private' %}Went private: {{ state.name(c.successor) }} took its deeds, houses and envelope.
+  {% else %}Dissolved.{% endif %}
+</p>
+{% else %}
+
+<section class="card">
+  <h2>Books</h2>
+  <dl class="stats">
+    <div><dt>Envelope</dt><dd>{{ c.cash|money }}<small>{{ m.counted(c) }}</small></dd></div>
+    <div><dt>Deeds &amp; buildings</dt><dd>{{ (state.company_value(c) - c.cash)|money }}</dd></div>
+    <div><dt>Value</dt><dd>{{ state.company_value(c)|money }}</dd></div>
+    <div><dt>Shares</dt><dd>{{ c.outstanding }}</dd></div>
+    <div><dt>Price/share</dt><dd>{{ state.share_price(c)|price }}</dd></div>
+  </dl>
+  <form method="post" action="{{ url_for('banker.count_envelope', cid=c.id) }}" class="row">
+    <input class="money" name="cash" inputmode="numeric" placeholder="{{ c.cash }}" aria-label="Counted cash">
+    <button class="small">Count envelope</button>
+    <small>Count before anything that needs the share price (auctions, mergers, the time limit).</small>
+  </form>
+
+  <div class="scroll" style="margin-top:1rem">
+  <table>
+    <tr><th>Shareholder</th><th class="num">Shares</th><th class="num">%</th><th class="num">Value</th><th>Extra meeting</th></tr>
+    {% for pid, n in c.holdings.items() %}
+    <tr>
+      <td>{{ state.name(pid) }}{% if pid == c.ceo %} <small>CEO</small>{% endif %}</td>
+      <td class="num">{{ n }}</td>
+      <td class="num">{{ (n / c.outstanding)|pct }}</td>
+      <td class="num">{{ (n * state.share_price(c))|money }}</td>
+      <td>{{ 'Can call one' if state.can_call_extra_meeting(c, pid) else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+
+  <div class="scroll" style="margin-top:1rem">
+  <table>
+    <tr><th>Deed</th><th>Buildings</th><th>Mortgage</th><th class="num">Value</th></tr>
+    {% for d in state.deeds_of(c.id) %}
+    <tr>
+      <td>{{ m.chip(d.group) }} {{ d.name }}</td>
+      <td>{{ d.houses|buildings }}</td>
+      <td>{{ 'Mortgaged' if d.mortgaged else '—' }}</td>
+      <td class="num">{{ d.value|money }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Board meeting</h2>
+  <p class="hint">Held when {{ state.name(c.ceo) }} passes GO, or as an extra meeting called by a holder of
+    {{ state.settings.extra_meeting_threshold|pct }}+ on their own turn. Tick who votes yes, then press the motion's button.
+    It passes with more than {{ state.settings.vote_threshold|pct }} of all shares.</p>
+
+  <form method="post" action="{{ url_for('banker.company_motion', cid=c.id) }}"
+        hx-post="{{ url_for('banker.company_preview', cid=c.id) }}" hx-trigger="input delay:250ms, change" hx-swap="none">
+    <fieldset>
+      <legend>Votes in favour</legend>
+      {% set yes = form.getlist('yes') %}
+      <div class="votes">
+        {% for pid, n in c.holdings.items() %}
+        <label><input type="checkbox" name="yes" value="{{ pid }}" {% if pid in yes %}checked{% endif %}> {{ state.name(pid) }} ({{ n }})</label>
+        {% endfor %}
+      </div>
+      {{ mp.tally(c, preview) }}
+    </fieldset>
+
+    <div class="motions">
+      <fieldset>
+        <legend>Dividend</legend>
+        <div class="row">
+          <input class="money" name="dividend" inputmode="numeric" placeholder="£ total" value="{{ form.get('dividend', '') }}" aria-label="Total dividend">
+          <button name="motion" value="dividend">Pay dividend</button>
+        </div>
+        {{ mp.dividend(c, preview) }}
+        <small>Paid from the envelope by shares held, rounded down per player.</small>
+      </fieldset>
+
+      <fieldset>
+        <legend>Sell new shares</legend>
+        <div class="row">
+          <label>Bundle <input type="number" min="1" name="auction_shares" value="{{ form.get('auction_shares', '') }}"></label>
+        </div>
+        {{ mp.auction(c, preview) }}
+        <div class="row">
+          <select name="auction_winner" aria-label="Auction winner">{{ m.player_options(form.get('auction_winner'), 'Winner…') }}</select>
+          <input class="money" name="auction_bid" inputmode="numeric" placeholder="£ winning bid" value="{{ form.get('auction_bid', '') }}" aria-label="Winning bid">
+          <button name="motion" value="auction">Sell bundle</button>
+        </div>
+        <small>Auctioned to everyone as one bundle. If nobody bids, nothing is sold and there's nothing to record.</small>
+      </fieldset>
+
+      {% for gid in state.board.groups if state.group_owner(gid) == c.id and state.board.groups[gid].buildable %}
+      {% set group = state.board.groups[gid] %}
+      <fieldset>
+        <legend>{{ m.chip(gid) }} Buildings on {{ group.name }}</legend>
+        <div class="row">
+          {% for d in state.group_deeds(gid) %}
+          <label>{{ d.name.split(' ')[0] }} <input type="number" min="0" max="5" style="width:4rem" name="houses-{{ d.id }}" value="{{ form.get('houses-' ~ d.id, d.houses) }}"></label>
+          {% endfor %}
+          <button name="motion" value="houses:{{ gid }}">Build / sell</button>
+        </div>
+        <small>{{ group.house_cost|money }} per house from the envelope; sold back at {{ rules.house_sale_refund(group.house_cost)|money }}. 5 = hotel. Build evenly.</small>
+      </fieldset>
+      {% endfor %}
+
+      <fieldset>
+        <legend>Mortgages</legend>
+        {% for d in state.deeds_of(c.id) %}
+        <div class="row" style="margin-bottom:.35rem">
+          <span style="flex:1">{{ m.chip(d.group) }} {{ d.name }}</span>
+          {% if d.mortgaged %}
+          <button class="small ghost" name="motion" value="unmortgage:{{ d.id }}">Unmortgage −{{ rules.unmortgage_cost(d.price)|money }}</button>
+          {% else %}
+          <button class="small ghost" name="motion" value="mortgage:{{ d.id }}" {% if d.houses %}disabled title="Sell the buildings first"{% endif %}>Mortgage +{{ rules.mortgage_value(d.price)|money }}</button>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </fieldset>
+
+      <fieldset>
+        <legend>Merge</legend>
+        <p>Both boards must vote yes. Everything goes into a new company with fresh shares.</p>
+        <a class="button ghost" href="{{ url_for('banker.merge', a=c.id) }}">Set up a merger →</a>
+      </fieldset>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Corrections</h2>
+  <div class="row">
+    <form method="post" action="{{ url_for('banker.company_admin', cid=c.id) }}" class="row">
+      <input type="hidden" name="action" value="rename">
+      <input name="name" value="{{ c.name }}" aria-label="Company name">
+      <button class="small ghost">Rename</button>
+    </form>
+    <form method="post" action="{{ url_for('banker.company_admin', cid=c.id) }}" class="row">
+      <input type="hidden" name="action" value="ceo">
+      <select name="ceo" aria-label="CEO">
+        {% for pid in c.holdings %}<option value="{{ pid }}" {% if pid == c.ceo %}selected{% endif %}>{{ state.name(pid) }}</option>{% endfor %}
+      </select>
+      <button class="small ghost">Set CEO</button>
+    </form>
+  </div>
+  <small>Set the CEO only after a dice roll for a tie, or to fix a mistake. The CEO can't be voted out.</small>
+</section>
+{% endif %}
+{% endblock %}

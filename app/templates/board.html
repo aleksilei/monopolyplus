@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Board{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>Board</h1>
+  {% include "_bank_buildings.html" %}
+</div>
+<p class="hint">Change an owner as soon as a deed is bought, traded or given back. Buildings and mortgages on a
+  player's set are recorded here; a company's are voted on at its board meeting.</p>
+<div class="groups">
+  {% for gid in state.board.groups %}{% include "_group.html" %}{% endfor %}
+</div>
+{% endblock %}

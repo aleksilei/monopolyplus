@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}Merge{% endblock %}
+{% block content %}
+<h1>Merge two companies</h1>
+<p class="hint">If both boards vote yes, everything from both goes into a new company. Its
+  {{ state.settings.founding_shares }} shares are split by what each player's old shares were worth. The biggest
+  shareholder becomes CEO. Count both envelopes first so the prices are right.</p>
+
+<form method="get" class="card row">
+  <label class="field"><span>Company A</span>
+    <select name="a" onchange="this.form.submit()">{{ m.company_options(form.get('a'), 'Pick…') }}</select></label>
+  <label class="field"><span>Company B</span>
+    <select name="b" onchange="this.form.submit()">{{ m.company_options(form.get('b'), 'Pick…') }}</select></label>
+  <noscript><button>Load</button></noscript>
+</form>
+
+{% set a = state.companies.get(form.get('a')) %}
+{% set b = state.companies.get(form.get('b')) %}
+{% if a and b and a.active and b.active and a.id != b.id %}
+<form method="post" action="{{ url_for('banker.merge_post') }}" class="card"
+      hx-post="{{ url_for('banker.merge_preview') }}" hx-trigger="input delay:250ms, change" hx-target="#merge-preview">
+  <input type="hidden" name="a" value="{{ a.id }}">
+  <input type="hidden" name="b" value="{{ b.id }}">
+  <div class="motions">
+    {% for side, c in [('a', a), ('b', b)] %}
+    <fieldset>
+      <legend>{{ m.company_chips(c) }} {{ c.name }}</legend>
+      <label class="field"><span>Envelope counted now (tracked {{ c.cash|money }}, {{ m.counted(c) }})</span>
+        <input class="money" name="count_{{ side }}" inputmode="numeric" placeholder="{{ c.cash }}" value="{{ form.get('count_' ~ side, '') }}"></label>
+      <span class="muted">Votes in favour</span>
+      {% set yes = form.getlist('yes_' ~ side) %}
+      <div class="votes">
+        {% for pid, n in c.holdings.items() %}
+        <label><input type="checkbox" name="yes_{{ side }}" value="{{ pid }}" {% if pid in yes %}checked{% endif %}> {{ state.name(pid) }} ({{ n }})</label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endfor %}
+  </div>
+  <label class="field"><span>New company name</span>
+    <input name="name" value="{{ form.get('name', '') }}" placeholder="e.g. {{ a.name.split(' ')[0] }}-{{ b.name.split(' ')[0] }} Holdings" required></label>
+  <div id="merge-preview">{% include "_merge_preview.html" %}</div>
+  <div class="row end"><button>Merge</button></div>
+</form>
+{% elif a and b %}
+<p class="msg error">Pick two different, active companies.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,64 @@
+{% set group = state.board.groups[gid] %}
+{% set deeds = state.group_deeds(gid) %}
+{% set owner = state.group_owner(gid) %}
+{% set company = state.companies.get(owner) if owner else None %}
+{% set target = "#group-" ~ gid %}
+<section class="group" id="group-{{ gid }}" style="--group: {{ group.colour }}">
+  <header>
+    <h2>{{ group.name }}</h2>
+    {% if group.buildable %}<small>houses {{ group.house_cost|money }}</small>{% endif %}
+    {% if company %}
+      <a class="pill" href="{{ url_for('banker.company', cid=company.id) }}">{{ company.name }} →</a>
+    {% elif options[gid].eligible %}
+      <a class="pill" href="{{ url_for('banker.found', group=gid) }}">Found a company →</a>
+    {% elif owner %}
+      <span class="pill">{{ state.name(owner) }} owns the set</span>
+    {% endif %}
+  </header>
+  {% if error %}<p class="msg error">{{ error }}</p>{% endif %}
+  {% if message %}<p class="msg ok">{{ message }}</p>{% endif %}
+  <div class="scroll">
+  <table>
+    <tr><th>Deed</th><th class="num hide-narrow">Price</th><th>Owner</th>{% if group.buildable %}<th>Houses</th>{% endif %}<th>Mortgaged</th></tr>
+    {% for d in deeds %}
+    <tr>
+      <td>{{ d.name }}</td>
+      <td class="num hide-narrow">{{ d.price|money }}</td>
+      <td>
+        {% if d.owner in state.companies %}
+          <a href="{{ url_for('banker.company', cid=d.owner) }}">{{ state.name(d.owner) }}</a>
+        {% else %}
+          <select name="owner" aria-label="Owner of {{ d.name }}"
+                  hx-post="{{ url_for('banker.deed_owner', did=d.id) }}" hx-target="{{ target }}" hx-swap="outerHTML">
+            <option value="">Bank</option>
+            {% for p in state.active_players %}
+            <option value="{{ p.id }}" {% if d.owner == p.id %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        {% endif %}
+      </td>
+      {% if group.buildable %}<td>{{ 'Hotel' if d.houses == 5 else (d.houses or '—') }}</td>{% endif %}
+      <td>
+        {% if d.owner and d.owner not in state.companies %}
+          <button class="small toggle {% if d.mortgaged %}on{% endif %}"
+                  hx-post="{{ url_for('banker.deed_mortgage', did=d.id) }}" hx-target="{{ target }}" hx-swap="outerHTML"
+                  title="{{ 'Unmortgage: owner pays ' ~ rules.unmortgage_cost(d.price)|money if d.mortgaged else 'Mortgage: bank pays ' ~ rules.mortgage_value(d.price)|money }}">
+            {{ 'Yes' if d.mortgaged else 'No' }}
+          </button>
+        {% elif d.mortgaged %}Yes{% else %}<small>—</small>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% if group.buildable and owner and owner in state.players %}
+  <form class="build" hx-post="{{ url_for('banker.group_houses', gid=gid) }}" hx-target="{{ target }}" hx-swap="outerHTML">
+    {% for d in deeds %}
+    <label>{{ d.name.split(' ')[0] }} <input type="number" name="{{ d.id }}" min="0" max="5" value="{{ d.houses }}" aria-label="Buildings on {{ d.name }}"></label>
+    {% endfor %}
+    <button class="small">Save buildings</button>
+    <small>5 = hotel · sells back at {{ rules.house_sale_refund(group.house_cost)|money }}</small>
+  </form>
+  {% endif %}
+</section>
+{% if oob %}{% include "_bank_buildings.html" %}{% endif %}

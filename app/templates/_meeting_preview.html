@@ -1,0 +1,29 @@
+{% macro tally(c, p, oob=false) -%}
+<div id="tally" class="tally {{ 'pass' if p.passes else 'fail' }}" {% if oob %}hx-swap-oob="true"{% endif %}>
+  {{ p.yes }} of {{ c.outstanding }} shares vote yes:
+  {% if p.passes %}motion passes{% else %}not enough (needs more than {{ '%g' % p.needed }}){% endif %}
+</div>
+{%- endmacro %}
+
+{% macro dividend(c, p, oob=false) -%}
+<div id="dividend-preview" class="preview" {% if oob %}hx-swap-oob="true"{% endif %}>
+  {% if p.errors.dividend %}{{ p.errors.dividend }}
+  {% elif p.dividend %}
+    {% set payouts, remainder = p.dividend %}
+    {% for pid, amount in payouts.items() %}{{ state.name(pid) }} <b>{{ amount|money }}</b>{% if not loop.last %} · {% endif %}{% endfor %}
+    {% if remainder %}<br><small>{{ remainder|money }} rounding stays in the envelope</small>{% endif %}
+  {% else %}Enter an amount to see each shareholder's payout.{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro auction(c, p, oob=false) -%}
+<div id="auction-preview" class="preview" {% if oob %}hx-swap-oob="true"{% endif %}>
+  {% if p.errors.auction %}{{ p.errors.auction }}
+  {% elif p.auction %}
+    Opening bid <b>{{ p.auction.start|money }}</b> ({{ p.auction.shares }} × {{ state.share_price(c)|price }}).
+    Shares after the sale: {{ p.auction.after }}.
+  {% else %}Enter the bundle size to see the opening bid.{% endif %}
+</div>
+{%- endmacro %}
+
+{% if oob %}{{ tally(c, preview, true) }}{{ dividend(c, preview, true) }}{{ auction(c, preview, true) }}{% endif %}

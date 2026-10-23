@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% import "macros.html" as m with context %}
+{% block title %}Trade shares{% endblock %}
+{% block content %}
+<h1>Trade shares</h1>
+<p class="hint">Players trade shares with each other at any price, like deeds. The cash changes hands directly;
+  the price is only noted in the history. There are no company buybacks.</p>
+
+{% if state.active_companies %}
+<form method="post" class="card">
+  <div class="row">
+    <label class="field"><span>Company</span>
+      <select name="company" required>{{ m.company_options(form.get('company'), 'Pick…') }}</select></label>
+    <label class="field"><span>Seller</span>
+      <select name="from" required>{{ m.player_options(form.get('from'), 'Pick…') }}</select></label>
+    <label class="field"><span>Buyer</span>
+      <select name="to" required>{{ m.player_options(form.get('to'), 'Pick…') }}</select></label>
+    <label class="field"><span>Shares</span>
+      <input type="number" name="shares" min="1" value="{{ form.get('shares', '') }}" required></label>
+    <label class="field"><span>Price paid (optional)</span>
+      <input class="money" name="price" inputmode="numeric" placeholder="£" value="{{ form.get('price', '') }}"></label>
+  </div>
+  <div class="row end"><button>Record trade</button></div>
+</form>
+{% endif %}
+
+<h2>Who holds what</h2>
+<div class="card">{{ m.holdings_table() }}</div>
+{% endblock %}

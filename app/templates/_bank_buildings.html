@@ -1,0 +1,4 @@
+{% set used = state.buildings_in_use() %}
+<p id="bank-buildings" class="pill" {% if oob %}hx-swap-oob="true"{% endif %}>
+  Bank has {{ state.board.houses_in_bank - used[0] }} houses · {{ state.board.hotels_in_bank - used[1] }} hotels
+</p>

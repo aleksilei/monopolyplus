@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The books · Monopoly+</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+<header class="top">
+  <span class="brand">Monopoly<span>+</span> books</span>
+  <small>Read only · refreshes every 15 s</small>
+</header>
+<main hx-get="{{ url_for('banker.books_live') }}" hx-trigger="every 15s" hx-swap="innerHTML">
+  {% include "_books.html" %}
+</main>
+</body>
+</html>

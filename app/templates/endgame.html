@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Time limit{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>Time limit</h1>
+  <span>Game time <span class="clock" data-since="{{ state.started_at }}" data-cap="{{ state.settings.time_cap_minutes }}"></span></span>
+</div>
+<p class="hint">When the time runs out, the richest player wins: cash + deeds and buildings + shares at today's
+  price. Everyone counts their cash, and you count every company envelope.</p>
+
+{% set final = state.final_cash or {} %}
+<form method="post" class="card" data-confirm="Record the final count?">
+  <div class="motions">
+    <fieldset>
+      <legend>Players' cash</legend>
+      {% for p in state.active_players %}
+      <label class="field"><span>{{ p.name }}</span>
+        <input class="money" name="cash-{{ p.id }}" inputmode="numeric" required
+               value="{{ form.get('cash-' ~ p.id, final.get(p.id, '')) }}"></label>
+      {% endfor %}
+    </fieldset>
+    {% if state.active_companies %}
+    <fieldset>
+      <legend>Company envelopes</legend>
+      {% for c in state.active_companies %}
+      <label class="field"><span>{{ c.name }} (tracked {{ c.cash|money }}, round {{ c.counted_round or '—' }})</span>
+        <input class="money" name="count-{{ c.id }}" inputmode="numeric" placeholder="{{ c.cash }}"
+               value="{{ form.get('count-' ~ c.id, '') }}"></label>
+      {% endfor %}
+      <small>Leave blank to keep the tracked amount.</small>
+    </fieldset>
+    {% endif %}
+  </div>
+  <div class="row end"><button>Count up net worth</button></div>
+</form>
+
+{% if state.final_cash is not none %}
+<section class="card">
+  <h2>Result</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>#</th><th>Player</th><th class="num">Cash</th><th class="num">Deeds &amp; buildings</th><th class="num">Shares</th><th class="num">Net worth</th></tr>
+    {% for r in state.net_worth(state.final_cash) %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{% if loop.first %}<b>{{ r.player.name }}</b> 🏆{% else %}{{ r.player.name }}{% endif %}</td>
+      <td class="num">{{ r.cash|money }}</td>
+      <td class="num">{{ r.deeds|money }}</td>
+      <td class="num">{{ r.shares|money }}</td>
+      <td class="num"><b>{{ r.total|money }}</b></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <small>Recorded at <time datetime="{{ state.final_at }}">{{ state.final_at[11:16] }}</time> UTC.
+    <a href="{{ url_for('banker.export_csv') }}">Download as CSV</a></small>
+</section>
+{% endif %}
+{% endblock %}

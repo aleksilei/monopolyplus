@@ -1,0 +1,22 @@
+{% if preview_error %}
+<p class="msg error">{{ preview_error }}</p>
+{% elif preview %}
+<div class="preview">
+  <table>
+    <tr><th>Founder</th><th class="num">Deeds</th><th class="num">Cash</th><th class="num">Total</th><th class="num">Shares</th></tr>
+    {% for pid, r in preview.rows.items() %}
+    <tr>
+      <td>{{ state.name(pid) }}</td>
+      <td class="num">{{ r.deed_value|money }}</td>
+      <td class="num">{{ r.cash|money }}</td>
+      <td class="num">{{ r.total|money }}</td>
+      <td class="num"><b>{{ r.shares }}</b></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p>Company value <b>{{ preview.value|money }}</b> · {{ state.settings.founding_shares }} shares at
+    <b>{{ preview.price|price }}</b> · envelope starts with <b>{{ preview.cash|money }}</b></p>
+</div>
+{% else %}
+<p class="preview muted">Pick the CEO to see the share split.</p>
+{% endif %}
