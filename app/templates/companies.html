@@ -22,6 +22,7 @@
     <p>{% for pid, n in c.holdings.items() %}{{ state.name(pid) }} <b>{{ n }}</b>{% if not loop.last %} · {% endif %}{% endfor %}</p>
     <form method="post" action="{{ url_for('banker.count_envelope', cid=c.id) }}" class="row">
       <input class="money" name="cash" inputmode="numeric" placeholder="{{ c.cash }}" aria-label="Counted cash">
+      <input class="note" name="note" maxlength="200" placeholder="Note (optional)" aria-label="Note for the history">
       <button class="small">Count envelope</button>
       <a class="button ghost small" href="{{ url_for('banker.company', cid=c.id) }}">Board meeting →</a>
     </form>

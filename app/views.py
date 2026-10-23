@@ -322,7 +322,10 @@ def count_envelope(cid):
         cash = to_int(request.form.get("cash"), "Envelope cash")
         if cash is None:
             raise RuleError("Enter the amount you counted")
-        _, entries = store().record(("envelope_count", {"company": cid, "cash": cash}))
+        payload = {"company": cid, "cash": cash}
+        if note := request.form.get("note", "").strip():
+            payload["note"] = note
+        _, entries = store().record(("envelope_count", payload))
         flash_entries(entries)
     except RuleError as e:
         flash(str(e), "error")

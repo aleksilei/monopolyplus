@@ -112,6 +112,15 @@ def test_company_buildings_need_vote_and_cash(orange_red):
     assert state.companies["c1"].cash == 150  # one house sold back at half price
 
 
+def test_envelope_count_note(orange_red):
+    state, [entry] = orange_red.record(("envelope_count", {"company": "c1", "cash": 390,
+                                                           "note": " Bob gifted £50 "}))
+    assert state.companies["c1"].cash == 390
+    assert entry.text.endswith("; note: Bob gifted £50")
+    with pytest.raises(RuleError, match="under 200"):
+        orange_red.record(("envelope_count", {"company": "c1", "cash": 390, "note": "x" * 201}))
+
+
 def test_company_mortgage_flows(orange_red):
     state, _ = orange_red.record(("set_mortgage", {"deed": "vine_street", "mortgaged": True,
                                                    "yes": ["p2"]}))

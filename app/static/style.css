@@ -103,6 +103,7 @@ input, select, textarea {
   background: var(--surface); min-height: 2.4rem; max-width: 100%;
 }
 input[type="number"], input.money { width: 7rem; }
+input.note { width: 16rem; }
 input[type="checkbox"], input[type="radio"] { min-height: auto; width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
 label { display: inline-flex; align-items: center; gap: .4rem; }
 .field { display: flex; flex-direction: column; align-items: stretch; gap: .2rem; margin-bottom: .75rem; }

@@ -27,8 +27,10 @@
   </dl>
   <form method="post" action="{{ url_for('banker.count_envelope', cid=c.id) }}" class="row">
     <input class="money" name="cash" inputmode="numeric" placeholder="{{ c.cash }}" aria-label="Counted cash">
+    <input class="note" name="note" maxlength="200" placeholder="Note, e.g. Anu gifted £50" aria-label="Note for the history">
     <button class="small">Count envelope</button>
-    <small>Count before anything that needs the share price (auctions, mergers, the time limit).</small>
+    <small>Count before anything that needs the share price (auctions, mergers, the time limit). The note is
+      optional and shows in the history, e.g. for a gift a shareholder put in.</small>
   </form>
 
   <div class="scroll" style="margin-top:1rem">

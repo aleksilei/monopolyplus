@@ -560,10 +560,14 @@ def _set_mortgage(s: State, p: dict, ev: Event, effects) -> str:
 def _envelope_count(s: State, p: dict, ev: Event, effects) -> str:
     c = s.company(p["company"])
     cash = _int(p["cash"], "Envelope cash", 0)
+    # Free text for the history, e.g. who gifted cash into the envelope since the last count.
+    note = str(p.get("note") or "").strip()
+    if len(note) > 200:
+        raise RuleError("Keep the note under 200 characters")
     before = c.cash
     c.cash, c.counted_round, c.counted_at = cash, s.round, ev.created_at
     diff = "" if cash == before else f" (tracked {money(before)}, {money(cash - before)} difference)"
-    return f"Counted {c.name}'s envelope: {money(cash)}{diff}"
+    return f"Counted {c.name}'s envelope: {money(cash)}{diff}" + (f"; note: {note}" if note else "")
 
 
 def _found(s: State, p: dict, ev: Event, effects) -> str:

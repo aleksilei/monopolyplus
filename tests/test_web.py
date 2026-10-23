@@ -65,7 +65,8 @@ def test_full_game(client):
        "motion fails")
     client.post("/companies/c1/motion", data={"motion": "dividend", "dividend": "50", "yes": "p1"})
     ok(client.get("/companies/c1"), "paid a £50 dividend", "£50")
-    client.post("/companies/c1/count", data={"cash": "200"})
+    client.post("/companies/c1/count", data={"cash": "200", "note": "Carol gifted £50"})
+    ok(client.get("/history"), "note: Carol gifted £50")
     ok(client.post("/companies/c1/motion", data={"motion": "auction", "auction_shares": "10",
                                                  "auction_winner": "p3", "auction_bid": "10",
                                                  "yes": "p1"}), "bidding starts at")
