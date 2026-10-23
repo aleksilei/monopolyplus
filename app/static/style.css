@@ -171,7 +171,7 @@ td.effects { font-size: .9rem; }
 
 /* --- QR & books --- */
 .qr { text-align: center; }
-.qr svg { width: min(80vw, 360px); height: auto; background: #fff; padding: .5rem; border-radius: var(--radius); }
+.qr svg { display: block; margin: 0 auto; width: min(80vw, 360px); height: auto; background: #fff; padding: .5rem; border-radius: var(--radius); }
 .books-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: .25rem 1rem; }
 
 @media (max-width: 560px) {

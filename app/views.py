@@ -656,6 +656,7 @@ def books_live():
 @needs_game
 def qr():
     url = books_url()
-    svg = segno.make(url, error="m").svg_inline(scale=8, border=2, dark="#111", light="#fff")
+    # omitsize swaps fixed width/height for a viewBox, so CSS can size the code.
+    svg = segno.make(url, error="m").svg_inline(border=2, dark="#111", light="#fff", omitsize=True)
     return render_template("qr.html", url=url, svg=svg,
                            warn_localhost=url.startswith(("http://localhost", "http://127.")))
